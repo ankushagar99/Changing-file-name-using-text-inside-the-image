@@ -1,7 +1,11 @@
+from logging import exception
+from platform import win32_edition
+import re
 import easyocr
 import os
 from tkinter import filedialog
 from tkinter import *
+
 root = Tk()
 root.withdraw()
 
@@ -9,46 +13,68 @@ path = filedialog.askdirectory()
 
 count = 0
 
+dublicate_count = 1
+
 for imageName in os.listdir(path):
-    if imageName.endswith(('.png', '.jpg', '.jpeg')):
-        inputPath = os.path.join(path, imageName)
+    try:
+        if imageName.endswith(('.png', '.jpg', '.jpeg')):
+            inputPath = os.path.join(path, imageName)
 
-        count += 1
-        print("Image "+ str(count) + " Processing...." )
+            count += 1
+            print("Image "+ str(count) + " Processing...." )
 
-        reader = easyocr.Reader(['en'], gpu=False, verbose=False)
-        raw_result = reader.readtext(inputPath, detail=0, paragraph="False")
+            reader = easyocr.Reader(['en'], gpu=False, verbose=False)
+            raw_result = reader.readtext(inputPath, detail=0, paragraph="False")
 
-        '''strip_result = raw_result[0][1].split()
+            result = ''.join(raw_result)
 
-        if '-' in strip_result:
-            strip_result.remove('-')
+            for ch in ['\\', '/','`','*','_','{','}','[',']','(',')','>','<','#','+','.','!','$','\'', '"', "'",'=',',','?',':','|','@ ','%','^','&']:
+                if ch in result:
+                    result = result.replace(ch, '')
 
-            result = "-".join(strip_result)
+            file_except = result
 
-            result = path + "/" + result + '.png'''
-        result = ' '.join(raw_result)
+            if imageName.endswith('.png'):
+                result = path + "/" + result[:20] + '.png'
+            elif imageName.endswith('.jpg'):
+                result = path + "/" + result[:20] + '.jpg'
+            else:
+                result = path + "/" + result[:20] + '.jpeg'
 
-        for ch in ['\\ ', '/','` ','* ','_ ','{ ','} ','[ ','] ','( ',') ','> ','< ','# ','+ ','- ','. ','! ','$ ','\' ', '" ', "' ",'= ',', ','? ',': ','| ','@ ','% ','^ ','& ']:
-            if ch in result:
-                result = result.replace(ch, '')
+            os.rename(inputPath,result)
 
+            print(result)
 
-        if imageName.endswith('.png'):
-            result = path + "/" + result + '.png'
-        elif imageName.endswith('.jpg'):
-            result = path + "/" + result + '.jpg'
-        else:
-            result = path + "/" + result + '.jpeg'
+            print("Image "+ str(count) + " Name Changed" )
 
+    except FileExistsError:
+        print("Duplicate File Detected")
+        try:
+            if imageName.endswith('.png'):
+                file_except =  path + "/" + file_except[:20] + '('+ str(dublicate_count) + ')' + '.png'
+            elif imageName.endswith('.jpg'):
+                file_except =  path + "/" + file_except[:20] + '('+ str(dublicate_count) + ')' + '.jpg'
+            else:
+                file_except =  path + "/" + file_except[:20] + '('+ str(dublicate_count) + ')' + '.jpeg'
 
-        '''result = path + "/" + result + '.png'''
+            print(file_except)
+            
+            os.rename(inputPath,file_except)
 
+            print("Image "+ str(count) + " Name Changed" )
 
-        os.rename(inputPath,result)
-
-        print("Image "+ str(count) + " Name Changed" )
-
+            dublicate_count += 1
+        except Exception as e:
+            with open("log.txt", "a+",encoding = 'utf-8') as f:
+                f.write(str(e))
+                f.write('\n')
+        pass
+     
+    except Exception as r:
+        with open("log.txt", "a+",encoding = 'utf-8') as f:
+            f.write(str(r))
+            f.write('\n')
+        pass
 
 print("Process Complete")
 
